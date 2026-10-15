@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper."
+title: "DACHP: code and run records for 'Deep Hyperspherical Contrastive Embeddings for High-Dimensional Image and Signal Representation: A Leakage-Free Evaluation'"
+type: software
+license: MIT
+authors:
+  - given-names: Vishal Bharadwaj
+    family-names: Meruga
+  - given-names: Leeladhar
+    family-names: Gudala
+  - given-names: C. Sateesh Kumar
+    family-names: Reddy
+  - given-names: Leelavathi
+    family-names: Rudraksha
+version: "1.0"
+date-released: "2026-10-15"

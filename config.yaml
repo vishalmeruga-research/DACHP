@@ -1,0 +1,93 @@
+# =====================================================================
+# DACHP revision — single source of truth for every hyper-parameter.
+# This file is reproduced verbatim as the supplementary configuration
+# table requested by Reviewer #1 (comment 6).
+# =====================================================================
+
+seeds: [0, 1, 2, 3, 4]          # one stratified train/val/test split + one init per seed
+sensitivity_seeds: [0, 1, 2]
+tuning_seed: 0                  # all tunable methods are tuned on the validation set of split 0 only
+split: {train: 0.6, val: 0.2, test: 0.2}
+
+datasets:
+  # name            epochs   note
+  breast_cancer:   {epochs: 200}
+  digits:          {epochs: 200}
+  mice_protein:    {epochs: 200}     # grouped split by mouse (15 replicates / mouse)
+  anneal:          {epochs: 200}     # UCI Annealing (OpenML id 2) — was mislabelled "COIL-20"
+  coil20:          {epochs: 200}     # true COIL-20, 1440 x 1024 (32x32), 20 classes
+  cnae9:           {epochs: 200}
+  mnist:           {epochs: 250, subset_per_class: 1000}
+  fashion_mnist:   {epochs: 250, subset_per_class: 1000}
+  har:             {epochs: 250}
+  isolet:          {epochs: 250}
+  olivetti:        {epochs: 200}
+
+preprocessing:
+  imputer: median                # fitted on the training split only
+  scaler: standard               # fitted on the training split only, applied to every method
+
+dachp:
+  latent_dim: 16
+  alpha: 1.2                     # hinge margin (chord distance on S^15; sqrt(2)=orthogonal)
+  eps_pos: 0.05                  # positive-term down-weighting (1 - eps_pos)
+  severe_term: true              # extra linear penalty when D_ij < alpha/2
+  lambda_aux: 0.3
+  tau_init: 0.07                 # FIXED: original code used log_tau=2.659 -> tau=14.3
+  tau_learnable: true
+  tau_clamp: [0.01, 1.0]
+  dropout: 0.1
+  residual: true
+  capacity_rule: adaptive        # adaptive | uncapped | fixed256
+  lr: 0.005
+  betas: [0.9, 0.999]
+  weight_decay: 0.0
+  warmup_frac: 0.10
+  min_lr: 1.0e-5
+  grad_clip: 5.0
+  minibatch_threshold: 2000      # N_train > threshold -> mini-batch training
+  batch_large: 512               # N_train > 5000
+  batch_medium: 256
+  tune_grid: {alpha: [1.0, 1.2, 1.5]}
+
+# Deep metric-learning baselines: SAME encoder, SAME optimiser/schedule/epochs as DACHP,
+# only the loss differs. Each has one key hyper-parameter tuned on the split-0 validation set.
+deep_baselines:
+  supcon:      {tau: 0.1,  tune_grid: {tau: [0.05, 0.1, 0.2]}}          # Khosla et al. 2020 (encoder + L2 + SupCon)
+  triplet:     {margin: 0.2, tune_grid: {margin: [0.1, 0.2, 0.5]}}      # batch-hard, Hermans et al. 2017 / FaceNet
+  proxyanchor: {alpha: 32, delta: 0.1, proxy_lr_mult: 100, tune_grid: {delta: [0.0, 0.1, 0.2]}}
+  arcface:     {s: 30.0, m: 0.5, tune_grid: {m: [0.2, 0.35, 0.5]}}
+  cosface:     {s: 30.0, m: 0.35, tune_grid: {m: [0.2, 0.35, 0.5]}}
+  ce_mlp:      {label_smoothing: 0.0, tune_grid: {label_smoothing: [0.0, 0.1, 0.2]}}
+
+classical_baselines:
+  pca: {n_components: 16}
+  lda: {}                         # n_components = min(C-1, 16)
+  tsne: {perplexity: auto}        # min(30, max(5, N/10)), PCA init
+  pacmap: {n_neighbors: 10}
+  trimap: {}                      # skipped automatically if the package is unavailable
+  umap: {n_neighbors: 15, min_dist: 0.1, pre_pca: 50}
+  sup_umap:
+    default: {n_neighbors: 15, min_dist: 0.1, pre_pca: 50, target_weight: 0.5}
+    tune_grid:
+      n_neighbors: [5, 15, 30, 50]
+      min_dist: [0.0, 0.1, 0.5]
+      pre_pca: [50, none]
+    also_16d: true                # Sup-UMAP with n_components=16 (same output size as DACHP)
+
+ablation:
+  variants: [full, no_sphere, no_hardneg, no_severe, no_aux, no_residual, uncapped, fixed256, legacy_tau]
+
+sensitivity:
+  alpha: [0.8, 1.0, 1.2, 1.5, 2.0]
+  latent_dim: [8, 16, 32]
+  lambda_aux: [0.0, 0.3, 0.5]
+  tau_init: [0.05, 0.07, 0.1, 0.2]
+
+evaluation:
+  knn_k: 5
+  trust_k: 10
+  trust_max_n: 2000
+  silhouette_max_n: 5000
+  monitor_every: 5                # epochs between collapse-monitor snapshots
+  monitor_n: 1000
